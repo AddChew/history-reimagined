@@ -58,7 +58,7 @@ export default function Prompt() {
                         {/* Prompt Text Area */}
                         <div>
                             <label htmlFor="prompt" className="block text-2xl font-queensides mb-2">
-                                What would you like to explore about Singapore's history?
+                                What would you like to explore about Singapore&apos;s history?
                             </label>
                             <Textarea
                                 id="prompt"
