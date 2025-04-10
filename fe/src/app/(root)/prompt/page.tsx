@@ -251,7 +251,7 @@ export default function Prompt() {
                         {(streamedText || isTextStreaming) && (
                             <div className="mt-8">
                                 <h3 className="text-xl font-queensides mb-3">Historical Context</h3>
-                                <div className="bg-gray-800 rounded-lg p-4 max-h-120 overflow-y-auto">
+                                <div className="bg-gray-800 rounded-lg p-4 max-h-100 overflow-y-auto">
                                     <p className="text-gray-200 whitespace-pre-wrap">
                                         {streamedText}
                                         {isTextStreaming && (
