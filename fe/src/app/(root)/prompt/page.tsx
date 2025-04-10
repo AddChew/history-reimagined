@@ -12,12 +12,13 @@ export default function Prompt() {
     const [images, setImages] = useState<File[]>([]);
     const [previews, setPreviews] = useState<string[]>([]);
     const [isGenerating, setIsGenerating] = useState(false);
+    const [videoUrl, setVideoUrl] = useState<string | null>(null);
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
             const newFiles = Array.from(e.target.files);
             setImages(prev => [...prev, ...newFiles]);
-            
+
             // Generate previews
             const newPreviews = newFiles.map(file => URL.createObjectURL(file));
             setPreviews(prev => [...prev, ...newPreviews]);
@@ -35,16 +36,50 @@ export default function Prompt() {
         setPreviews(newPreviews);
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsGenerating(true);
-        // Simulate API call
-        setTimeout(() => {
+        setVideoUrl(null); // Reset video URL before generating a new one
+
+        try {
+            const response = await fetch('/api/prompt', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ prompt: prompt }),
+            });
+
+            if (!response.ok) {
+                throw new Error(`Error: ${response.status}`);
+            }
+
+            const result = await response.json();
+            console.log("API Response:", result);
+
+            // Extract video filepath from the response
+            if (result.videoPath || result.videoUrl) {
+                // Use the video path from the server response
+                const videoPath = result.videoPath || result.videoUrl;
+                const videoResponse = await fetch(`/api/video`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ videoPath }),
+                });
+                const blob = await videoResponse.blob();
+                const url = URL.createObjectURL(blob);
+                console.log("Video URL:", url);
+                setVideoUrl(url);
+            } else {
+                console.error("No video path found in response");
+            }
+        } catch (error) {
+            console.error("Failed to send prompt:", error);
+        } finally {
             setIsGenerating(false);
-        }, 3000);
-        
-        console.log("Prompt:", prompt);
-        console.log("Images:", images);
+        }
     };
 
     return (
@@ -53,7 +88,7 @@ export default function Prompt() {
                 {/* Left Side - Input Form */}
                 <div className="w-full md:w-1/2 p-6 overflow-y-auto flex flex-col h-full relative">
                     <h1 className="text-4xl font-bold mb-6 font-queensides flex-shrink-0">Create Your Prompt</h1>
-                    
+
                     <form onSubmit={handleSubmit} className="space-y-4 flex-grow overflow-y-auto pb-20">
                         {/* Prompt Text Area */}
                         <div>
@@ -68,23 +103,23 @@ export default function Prompt() {
                                 className="w-full h-28 bg-gray-800 border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                             />
                         </div>
-                        
+
                         {/* Image Upload Area */}
                         <div className="space-y-3">
                             <label className="block text-2xl font-queensides mb-2">
                                 Upload Images (Optional)
                             </label>
-                            
+
                             {/* Image Preview Grid */}
                             {previews.length > 0 && (
                                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-3">
                                     {previews.map((preview, index) => (
                                         <div key={index} className="relative group">
                                             <div className="aspect-square w-full overflow-hidden rounded-lg bg-gray-700">
-                                                <Image 
-                                                    src={preview} 
-                                                    alt={`Preview ${index}`} 
-                                                    width={200} 
+                                                <Image
+                                                    src={preview}
+                                                    alt={`Preview ${index}`}
+                                                    width={200}
                                                     height={200}
                                                     className="object-cover w-full h-full"
                                                 />
@@ -100,7 +135,7 @@ export default function Prompt() {
                                     ))}
                                 </div>
                             )}
-                            
+
                             {/* Upload Button */}
                             <div className="flex items-center justify-center w-full">
                                 <label
@@ -125,11 +160,11 @@ export default function Prompt() {
                                 </label>
                             </div>
                         </div>
-                        
+
                         {/* Submit Button */}
                         <div className="flex justify-end">
-                            <Button 
-                                type="submit" 
+                            <Button
+                                type="submit"
                                 disabled={isGenerating || !prompt.trim()}
                                 className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg flex items-center gap-2 disabled:bg-blue-800 disabled:opacity-50"
                             >
@@ -163,19 +198,28 @@ export default function Prompt() {
                         </Link>
                     </div>
                 </div>
-                
+
                 {/* Right Side - Video Skeleton */}
                 <div className="w-full md:w-1/2 bg-gray-950 p-6 flex flex-col border-l border-gray-700 h-full overflow-y-auto">
                     <h2 className="text-xl font-bold mb-4 font-queensides flex-shrink-0">Generated Video</h2>
-                    
+
                     <div className="flex-grow flex flex-col items-center justify-center">
                         <div className="w-full max-w-md aspect-[9/16] bg-gray-800 rounded-lg overflow-hidden relative">
                             {/* Video Skeleton */}
                             <div className="absolute inset-0 flex items-center justify-center">
-                                {isGenerating ? (
+                                {videoUrl ? (
+                                    <video
+                                        className="w-full h-full object-contain"
+                                        controls
+                                        autoPlay
+                                        src={videoUrl}
+                                    >
+                                        Your browser does not support the video tag.
+                                    </video>
+                                ) : isGenerating ? (
                                     <div className="text-center">
                                         <Loader className="w-12 h-12 animate-spin mb-4 mx-auto text-blue-500" />
-                                        <p className="text-gray-400">Generating your TikTok video...</p>
+                                        <p className="text-gray-400">Generating your video...</p>
                                         <p className="text-xs text-gray-500 mt-2">This might take a minute</p>
                                     </div>
                                 ) : (
@@ -188,18 +232,23 @@ export default function Prompt() {
                                     </div>
                                 )}
                             </div>
-                            
+
                             {/* Video Overlay */}
-                            <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/70 to-transparent">
-                                <div className="space-y-2">
-                                    <div className="h-4 w-3/4 bg-gray-700 rounded animate-pulse"></div>
-                                    <div className="h-3 w-1/2 bg-gray-700 rounded animate-pulse"></div>
-                                </div>
-                            </div>
+                            <>
+                                {
+                                    isGenerating &&
+                                    <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/70 to-transparent">
+                                        <div className="space-y-2">
+                                            <div className="h-4 w-3/4 bg-gray-700 rounded animate-pulse"></div>
+                                            <div className="h-3 w-1/2 bg-gray-700 rounded animate-pulse"></div>
+                                        </div>
+                                    </div>
+                                }
+                            </>
                         </div>
-                        
+
                         {/* Video Controls Skeleton */}
-                        <div className="mt-6 w-full max-w-md">
+                        {/* <div className="mt-6 w-full max-w-md">
                             <div className="flex justify-between items-center mb-4">
                                 <div className="h-4 w-24 bg-gray-700 rounded"></div>
                                 <div className="h-4 w-16 bg-gray-700 rounded"></div>
@@ -207,7 +256,7 @@ export default function Prompt() {
                             <div className="h-2 w-full bg-gray-700 rounded-full mb-6">
                                 <div className={`h-full ${isGenerating ? 'w-1/3 animate-pulse' : 'w-0'} bg-blue-500 rounded-full`}></div>
                             </div>
-                        </div>
+                        </div> */}
                     </div>
                 </div>
             </div>

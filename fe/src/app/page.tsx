@@ -5,20 +5,6 @@ import { Button } from "@/components/ui/button";
 export default function Home() {
   return (
     <div className="grid items-center justify-items-center min-h-screen w-full p-8 sm:p-20 relative">
-      {/* Full-page background
-      <div className="absolute inset-0 -z-10">
-        <div className="relative w-full h-full overflow-hidden">
-          <Image
-            src="/images/landing.png"
-            alt="Vintage Singapore background"
-            fill
-            className="object-cover opacity-20 sepia"
-            priority
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent to-white/70"></div>
-        </div>
-      </div> */}
-
       {/* Background Video */}
       <video
         autoPlay
