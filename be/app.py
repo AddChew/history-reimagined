@@ -20,14 +20,7 @@ import dashscope
 
 # Load environment variables from .env file
 load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env'))
-# DASHSCOPE_API_KEY="sk-6e0175434bde4af3b1b8d550b16fdb19"
-# DASHSCOPE_HTTP_BASE_URL="https://dashscope-intl.aliyuncs.com/api/v1"
-# WAN_API_KEY="MTg0ZGM3ODYyOTU0NTk3OTcxYzc0NGJkNGM2MzFjZjMxNDYzNGViYQ=="
-# DASHSCOPE_APP_ID="cde0a41133954b94aa61e6e3d4e43ece"
-# dashscope.base_http_api_url = DASHSCOPE_HTTP_BASE_URL
-# app_id = DASHSCOPE_APP_ID
-# api_key = DASHSCOPE_API_KEY
-# wan_api_key = WAN_API_KEY
+
 dashscope.base_http_api_url = os.getenv("DASHSCOPE_HTTP_BASE_URL")
 caption_app_id = os.getenv("CAPTION_DASHSCOPE_APP_ID")
 caption_api_key = os.getenv("CAPTION_DASHSCOPE_API_KEY")
@@ -256,31 +249,6 @@ async def get_job_status(job_id: str):
         "error": job.get("error")
     }
 
-# Keep the old endpoint for backward compatibility
-# @app.post("/prompt")
-# async def post_prompt(payload: PromptPayload, background_tasks: BackgroundTasks):
-#     try:
-#         # Create a job
-#         job_response = await start_prompt_job(payload, background_tasks)
-#         job_id = job_response["job_id"]
-        
-#         # Wait for completion (but with a timeout)
-#         start_time = time.time()
-#         timeout = 30  # 30 seconds timeout for the synchronous API
-        
-#         while time.time() - start_time < timeout:
-#             job = jobs.get(job_id, {})
-#             if job.get("completed", False):
-#                 if job.get("error"):
-#                     raise HTTPException(status_code=500, detail=job["error"])
-#                 return {"video": job.get("video"), "job_id": job_id}
-#             await time.sleep(0.5)  # Sleep briefly to avoid tight looping
-        
-#         # If we hit the timeout, return the job ID so client can poll
-#         return {"job_id": job_id, "status": "processing"}
-        
-#     except Exception as e:
-#         raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/prompt/text/{job_id}")
