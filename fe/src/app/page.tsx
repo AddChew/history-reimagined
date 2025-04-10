@@ -36,7 +36,7 @@ export default function Home() {
         </div>
       </main>
       <footer className="row-start-3 flex gap-[64px] flex-wrap items-center justify-center">
-        <Link href="https://github.com/widyaageng/alikiasu" className="footer-menu-font !text-2xl">code@github/Alibaba-Hackathon-2025</Link>
+        <Link href="https://github.com/AddChew/history-reimagined.git" className="footer-menu-font !text-2xl">code@github/Alibaba-Hackathon-2025</Link>
       </footer>
     </div>
   );
