@@ -33,7 +33,7 @@ export default function Home() {
       </video>
 
       <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start relative">
-        <h1 className="text-8xl font-bold p-6 text-gray-200 font-motterdam">Tiktok for Singapore History</h1>
+        <h1 className="text-8xl font-bold p-6 text-gray-200 font-motterdam">History Reimagined</h1>
         <p className="font-queensides text-2xl font-bold pl-16">Generate short videos about Singapore history from text book and source images..</p>
         <div className="flex flex-col gap-[32px] m-auto">
           <Link href="/prompt" className="flex items-center justify-center">
