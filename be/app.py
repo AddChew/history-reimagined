@@ -19,7 +19,7 @@ import dashscope
 
 
 # Load environment variables from .env file
-load_dotenv('/home/widya/works/github/alikiasu/.env')
+load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env'))
 # DASHSCOPE_API_KEY="sk-6e0175434bde4af3b1b8d550b16fdb19"
 # DASHSCOPE_HTTP_BASE_URL="https://dashscope-intl.aliyuncs.com/api/v1"
 # WAN_API_KEY="MTg0ZGM3ODYyOTU0NTk3OTcxYzc0NGJkNGM2MzFjZjMxNDYzNGViYQ=="

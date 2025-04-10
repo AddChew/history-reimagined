@@ -1,10 +1,9 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
-import Image from 'next/image';
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Upload, X, Send, Play, Loader, ArrowLeft } from "lucide-react";
+import { Send, Play, Loader, ArrowLeft } from "lucide-react";
 import Link from 'next/link';
 
 export default function Prompt() {
@@ -216,7 +215,7 @@ export default function Prompt() {
                         {/* Prompt Text Area */}
                         <div>
                             <label htmlFor="prompt" className="block text-2xl font-queensides mb-2">
-                                What would you like to explore about Singapore's history?
+                                What would you like to explore about Singapore&apos;s history?
                             </label>
                             <Textarea
                                 id="prompt"
