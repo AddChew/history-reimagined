@@ -1,0 +1,37 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+  --font-text-queensides: "Queensides", sans-serif;
+  --font-text-motterdam: "Motterdam", sans-serif;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-queensides: var(--font-text-queensides);
+  --font-motterdam: var(--font-text-motterdam);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.footer-menu-font {
+  font-family: var(--font-text-queensides);
+  font-weight: 600;
+  font-size: 2rem;
+  line-height: 1.5;
+  color: #e5e7eb ;
+  text-decoration: none;
+}
