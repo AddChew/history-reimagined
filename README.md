@@ -1,6 +1,6 @@
 # History Reimagined
 
-Web application that transforms the way users explore Singapore’s rich history through interactive, conversational and visual experiences. Powered by cutting-edge AI Qwen and WAN models and hosted on Alibaba Cloud [here](http://8.222.211.185/).
+Web application that transforms the way users explore Singapore’s rich history through interactive, conversational and visual experiences. Powered by cutting-edge AI Qwen and WAN models and hosted on Alibaba Cloud.
 
 # Demo Video
 
