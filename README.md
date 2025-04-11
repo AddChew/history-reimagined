@@ -4,4 +4,4 @@ Web application that transforms the way users explore Singapore’s rich history
 
 # Demo Video
 
-https://www.youtube.com/watch?v=07mP4S9KJxQ
+<iframe width="560" height="315" src="https://www.youtube.com/embed/07mP4S9KJxQ?si=08fTPMDejvVTeO9h" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
