@@ -128,7 +128,7 @@ def run_gradio_prediction(payload: PromptPayload, debug=IS_DEBUG):
     return response
 
 # DashScope text generation function
-def generate_text_blocking(prompt: str, api_key:str, app_id:str) -> List[str]:
+def generate_text_blocking(prompt: str, api_key:str, app_id:str, job_id: str = None) -> List[str]:
     """Run text generation and return chunks as they're generated"""
     text_chunks = []
     try:
@@ -143,8 +143,19 @@ def generate_text_blocking(prompt: str, api_key:str, app_id:str) -> List[str]:
             if response.status_code == HTTPStatus.OK:
                 chunk = response.output.text
                 text_chunks.append(chunk)
+                
+                # Update job data if job_id is provided
+                if job_id and job_id in jobs:
+                    # Store each chunk as it arrives for streaming
+                    jobs[job_id]['context_text_chunks'] = text_chunks
     except Exception as e:
         text_chunks.append(f"Error generating text: {str(e)}")
+        if job_id and job_id in jobs:
+            jobs[job_id]['text_error'] = str(e)
+    
+    if job_id and job_id in jobs:
+        jobs[job_id]['context_text_completed'] = True
+        
     return text_chunks
 
 
@@ -152,8 +163,19 @@ async def process_job(job_id: str, payload: PromptPayload):
     try:
         # Update job status
         jobs[job_id]['status'] = 'processing'
-        jobs[job_id]['text_chunks'] = []
+        jobs[job_id]['context_text_chunks'] = []  # Initialize with empty list for streaming
         
+        # Start context text generation first - this will update the job data directly
+        context_task = asyncio.get_event_loop().run_in_executor(
+            executor,
+            generate_text_blocking,
+            payload.prompt,
+            context_api_key,
+            context_app_id,
+            job_id  # Pass job_id to update job data directly
+        )
+        
+        # Start caption generation
         caption_task = asyncio.get_event_loop().run_in_executor(
             executor,
             generate_text_blocking,
@@ -161,12 +183,13 @@ async def process_job(job_id: str, payload: PromptPayload):
             caption_api_key,
             caption_app_id
         )
-
+        
         # Wait for caption text generation to complete
         caption_text_chunks = await caption_task
         jobs[job_id]['caption_text_chunks'] = " ".join(caption_text_chunks)
         jobs[job_id]['caption_text_completed'] = True
-
+        
+        # Create video prompt from caption
         text_to_video_prompt = PromptPayload(
             prompt=jobs[job_id]['caption_text_chunks'],
             neg_prompt=payload.neg_prompt,
@@ -176,19 +199,12 @@ async def process_job(job_id: str, payload: PromptPayload):
             cfg_scale=payload.cfg_scale,
             api_name=payload.api_name
         )
-
+        
+        # Start video generation
         video_task = asyncio.get_event_loop().run_in_executor(
             executor, 
             run_gradio_prediction,
             text_to_video_prompt
-        )
-        
-        context_task = asyncio.get_event_loop().run_in_executor(
-            executor,
-            generate_text_blocking,
-            payload.prompt,
-            context_api_key,
-            context_app_id
         )
         
         # Wait for video generation to complete
@@ -197,13 +213,8 @@ async def process_job(job_id: str, payload: PromptPayload):
         jobs[job_id]['completed'] = True
         jobs[job_id]['video'] = video_result.get('video')
         
-        # Wait for context text generation to complete
-        context_text_chunks = await context_task
-        joined_context_text = "Cant find context from Knowledge Base or context DASH returned empty"
-        if len(context_text_chunks) > 0:
-            joined_context_text = context_text_chunks[-1]
-        jobs[job_id]['context_text_chunks'] = joined_context_text
-        jobs[job_id]['context_text_completed'] = True
+        # We don't need to await context_task here since it's updating the job directly
+        # The streaming endpoint is already accessing the partial results
         
     except Exception as e:
         # Update job with error
@@ -260,6 +271,9 @@ async def stream_text(job_id: str, request: Request):
     job = jobs[job_id]
     
     async def generate_stream():
+        # Send the leader message to establish connection
+        yield f"data: {json.dumps({'text': 'Generating historical context...'})}\n\n"
+        
         # Return chunks that have already been generated
         sent_chunks = 0
         
@@ -271,23 +285,38 @@ async def stream_text(job_id: str, request: Request):
             # Get current chunks
             current_chunks = job.get('context_text_chunks', [])
             
-            # Send any new chunks
+            # Send any new chunks with better granularity
             while sent_chunks < len(current_chunks):
-                yield f"data: {json.dumps({'text': current_chunks[sent_chunks]})}\n\n"
+                chunk = current_chunks[sent_chunks]
                 sent_chunks += 1
+                
+                # Skip empty chunks
+                if not chunk or chunk.isspace():
+                    continue
+                
+                # Process chunk at sentence level rather than word level
+                sentences = chunk.split('.')
+                for sentence in sentences:
+                    if not sentence.strip():
+                        continue
+                        
+                    # Send sentence with period
+                    yield f"data: {json.dumps({'text': sentence.strip() + '. '})}\n\n"
+                    await asyncio.sleep(0.3)  # Longer delay between sentences for readability
             
             # If text generation is complete, send completion message and exit
-            if job.get('text_completed', False):
+            if job.get('context_text_completed', False) and sent_chunks >= len(current_chunks):
                 yield f"data: {json.dumps({'done': True})}\n\n"
                 break
                 
             # If there was an error, send it
-            if job.get('error'):
-                yield f"data: {json.dumps({'error': job.get('error')})}\n\n"
+            if job.get('text_error') or job.get('error'):
+                error_msg = job.get('text_error') or job.get('error')
+                yield f"data: {json.dumps({'error': error_msg})}\n\n"
                 break
                 
-            # Wait before checking again
-            await asyncio.sleep(0.5)
+            # Wait briefly before checking for more chunks
+            await asyncio.sleep(0.2)
     
     return StreamingResponse(
         generate_stream(),

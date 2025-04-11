@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "PORT=80 next dev --turbopack",
     "build": "next build",
+    "postbuild": "cp -r public .next/standalone/ && cp -r .next/static .next/standalone/.next/",
     "start": "PORT=80 next start",
     "lint": "next lint"
   },

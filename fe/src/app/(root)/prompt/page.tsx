@@ -13,7 +13,9 @@ export default function Prompt() {
     const [elapsedTime, setElapsedTime] = useState(0);
     const [streamedText, setStreamedText] = useState<string>('');
     const [isTextStreaming, setIsTextStreaming] = useState(false);
-    
+    const [pendingText, setPendingText] = useState('');
+    const [displayedText, setDisplayedText] = useState('');
+
     const eventSourceRef = useRef<EventSource | null>(null);
 
     // Format time as mm:ss
@@ -26,7 +28,7 @@ export default function Prompt() {
     // Effect to update elapsed time while generating
     useEffect(() => {
         let timer: NodeJS.Timeout | null = null;
-        
+
         if (isGenerating) {
             timer = setInterval(() => {
                 setElapsedTime(prev => prev + 1);
@@ -34,12 +36,12 @@ export default function Prompt() {
         } else if (!isGenerating && timer) {
             setElapsedTime(0);
         }
-        
+
         return () => {
             if (timer) clearInterval(timer);
         };
     }, [isGenerating]);
-    
+
     // Clean up event source on unmount
     useEffect(() => {
         return () => {
@@ -49,42 +51,56 @@ export default function Prompt() {
         };
     }, []);
 
+    // Animation effect to display text character by character
+    useEffect(() => {
+        if (pendingText.length === 0) return;
+
+        const typingInterval = setInterval(() => {
+            // Take the first character from pendingText and add it to displayedText
+            setDisplayedText(prev => prev + pendingText[0]);
+            setPendingText(prev => prev.slice(1));
+        }, 10); // Adjust speed as needed
+
+        return () => clearInterval(typingInterval);
+    }, [pendingText]);
+
     const startTextStreaming = (jobId: string) => {
         // Close existing connection if any
         if (eventSourceRef.current) {
             eventSourceRef.current.close();
         }
-        
+
         setIsTextStreaming(true);
         setStreamedText('Connecting to text stream...');
-        
+
         try {
             // Create a new EventSource connection
             const eventSource = new EventSource(`/api/prompt/text?jobId=${jobId}`);
             eventSourceRef.current = eventSource;
-            
+
             // Connection opened
             eventSource.onopen = () => {
                 console.log('Text stream connection established');
                 setStreamedText('');
             };
-            
+
             // Handle messages
             eventSource.onmessage = (event) => {
                 console.log('Received SSE message:', event.data);
                 try {
                     const data = JSON.parse(event.data);
-                    
+
                     if (data.text) {
-                        setStreamedText(prev => prev + data.text);
+                        // Queue the new text instead of immediately displaying it
+                        setPendingText(prev => prev + data.text);
                     }
-                    
+
                     if (data.done) {
                         console.log('Text streaming completed');
                         eventSource.close();
                         setIsTextStreaming(false);
                     }
-                    
+
                     if (data.error) {
                         console.error("Text streaming error:", data.error);
                         setStreamedText(prev => `${prev}\n\nError: ${data.error}`);
@@ -96,15 +112,15 @@ export default function Prompt() {
                     setStreamedText(prev => `${prev}\n\nError parsing stream data`);
                 }
             };
-            
+
             // Handle errors
             eventSource.onerror = (error) => {
                 console.error("EventSource error:", error);
                 setStreamedText(prev => `${prev}\n\nConnection error. Reconnecting...`);
-                
+
                 // Close the connection on error
                 eventSource.close();
-                
+
                 // Attempt to reconnect after a delay
                 setTimeout(() => {
                     if (isTextStreaming) {
@@ -141,7 +157,7 @@ export default function Prompt() {
 
             const { jobId } = await response.json();
             console.log("Job started with ID:", jobId);
-            
+
             // Start streaming text immediately
             startTextStreaming(jobId);
 
@@ -246,14 +262,14 @@ export default function Prompt() {
                                 )}
                             </Button>
                         </div>
-                        
+
                         {/* Text Generation Output */}
-                        {(streamedText || isTextStreaming) && (
+                        {(displayedText || isTextStreaming) && (
                             <div className="mt-8">
                                 <h3 className="text-xl font-queensides mb-3">Historical Context</h3>
                                 <div className="bg-gray-800 rounded-lg p-4 max-h-100 overflow-y-auto">
                                     <p className="text-gray-200 whitespace-pre-wrap">
-                                        {streamedText}
+                                        {displayedText}
                                         {isTextStreaming && (
                                             <span className="inline-block animate-pulse">▌</span>
                                         )}
@@ -278,7 +294,7 @@ export default function Prompt() {
                         </Link>
                     </div>
                 </div>
-                
+
                 {/* Right Side - Video Result */}
                 <div className="w-full md:w-1/2 bg-gray-950 p-6 flex flex-col border-l border-gray-700 h-full overflow-y-auto">
                     <h2 className="text-xl font-bold mb-4 font-queensides flex-shrink-0">Generated Video</h2>
@@ -327,9 +343,9 @@ export default function Prompt() {
                                     <span>{formatTime(elapsedTime)}</span>
                                 </div>
                                 <div className="h-1.5 w-full bg-gray-800 rounded-full">
-                                    <div 
+                                    <div
                                         className="h-full bg-blue-500 rounded-full transition-all duration-300"
-                                        style={{ width: `${Math.min(elapsedTime / 900 * 100, 100)}%` }} 
+                                        style={{ width: `${Math.min(elapsedTime / 900 * 100, 100)}%` }}
                                     />
                                 </div>
                             </div>
